@@ -238,9 +238,7 @@ ERROR_T BTreeIndex::LookupOrUpdateInternal(const SIZE_T &node,
 	if (op==BTREE_OP_LOOKUP) { 
 	  return b.GetVal(offset,value);
 	} else { 
-	  // BTREE_OP_UPDATE
-	  // WRITE ME
-	  return ERROR_UNIMPL;
+	  return b.SetVal(offset,value);
 	}
       }
     }
@@ -361,8 +359,7 @@ ERROR_T BTreeIndex::Insert(const KEY_T &key, const VALUE_T &value)
   
 ERROR_T BTreeIndex::Update(const KEY_T &key, const VALUE_T &value)
 {
-  // WRITE ME
-  return ERROR_UNIMPL;
+  return LookupOrUpdateInternal(superblock.info.rootnode, BTREE_OP_LOOKUP, key, value);
 }
 
   
