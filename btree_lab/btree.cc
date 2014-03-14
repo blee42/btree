@@ -568,7 +568,7 @@ ERROR_T BTreeIndex::Split(const SIZE_T offset,
   for (unsigned int i=0; i<=parent.info.numkeys-1; i++)
   {
     // check if the ith ptr points to child node
-    if (parent.GetPtr(i,tempPtr) == nodenum) {
+    if ((unsigned int)parent.GetPtr(i,tempPtr) == nodenum) {
       pOffset=tempPtr;
     }
   }
