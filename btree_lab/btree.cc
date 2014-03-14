@@ -265,15 +265,16 @@ ERROR_T BTreeIndex::Insert_NotFull(const SIZE_T offset,
 					   const SIZE_T &nodenum,
 					   BTreeNode &b)
 {
-KEY_T temp_key;
-VALUE_T temp_val;
-SIZE_T temp_offset;
-KeyValuePair temp_kvpair(&tempkey,&tempval);
-KeyValuePair kvpair(key,value); //syntax for use would be b.SetKeyVal(offset,&kvpair)
+  ERROR_T rc;
+  KEY_T temp_key;
+  VALUE_T temp_val;
+  SIZE_T temp_offset;
+  KeyValuePair temp_kvpair(temp_key,temp_val);
+  KeyValuePair kvpair(key,value); //syntax for use would be b.SetKeyVal(offset,&kvpair)
 
-assert(b.info.nodetype == BTREE_LEAF_NODE) //Insert_NotFull should only be called at a leaf node
+  assert(b.info.nodetype == BTREE_LEAF_NODE); //Insert_NotFull should only be called at a leaf node
 
-//First step is to shift all values from offset to the right
+  //First step is to shift all values from offset to the right
 	for (temp_offset=(b.info.numkeys-1);temp_offset>=offset;temp_offset--) {
 		//obtain key and value starting from the rightmost kvpair
 		b.info.numkeys++;
