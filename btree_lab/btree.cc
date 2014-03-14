@@ -263,7 +263,6 @@ ERROR_T BTreeIndex::Insert_NotFull(const SIZE_T offset,
 					   const KEY_T &key,
 					   const VALUE_T &value)
 {
-
 	return ERROR_INSANE;
 }
 
@@ -332,14 +331,14 @@ ERROR_T BTreeIndex::InsertInternal(const SIZE_T &node,
 				//Now allocate the new nodes, save the ptr in the parent node, and set new node as leaf
 				
 				//Left Ptr
-				rc=b.AllocateNode(&leftleaf); //allocate the new block. new block will be at leftleaf
+				rc=AllocateNode(leftleaf); //allocate the new block. new block will be at leftleaf
 				if (rc) {  return rc; }
-				rc=b.SetPtr(0,&leftleaf); //Set the ptr in the rootnode. offset is 0.
+				rc=b.SetPtr(0,leftleaf); //Set the ptr in the rootnode. offset is 0.
 				if (rc) {  return rc; }
 				//Right Ptr	
-				rc=b.AllocateNode(&rightleaf); //allocate the new block. new block will be at rightleaf
+				rc=AllocateNode(rightleaf); //allocate the new block. new block will be at rightleaf
 				if (rc) {  return rc; }
-				rc=b.SetPtr(1,&rightleaf); //Set the ptr in the rootnode. offset is 1.
+				rc=b.SetPtr(1,rightleaf); //Set the ptr in the rootnode. offset is 1.
 				if (rc) {  return rc; }
 				//Serialize Root
 				rc=b.Serialize(buffercache,node); //Since the ptrs have been created and added to rootnode
@@ -359,16 +358,16 @@ ERROR_T BTreeIndex::InsertInternal(const SIZE_T &node,
 				if (rc) {  return rc; }
 				newrightnode.info.nodetype=BTREE_LEAF_NODE; //set it to a leaf node
 				newrightnode.info.parentnode=node;
-				return InsertInternal(rightleaf,op,key,value)
+				return InsertInternal(rightleaf,op,key,value);
 				// it will recurse and add the new value to the end of the leaf we just created.
 				
-	/* 			//other option would be to just manually set the key/val here, but if InsertInternal works properly, this should not be needed
-				rc=newleftnode.SetKey(0,key) //first key entry, offset=0
-				if (rc) {  return rc; }
-				rc=newleftnode.SetVal(0,value) //first key entry, offset=0
-				if (rc) {  return rc; }
-				rc=newrightnote.Serialize(buffercache,rightleaf);
-				if (rc) {  return rc; } */
+	      //other option would be to just manually set the key/val here, but if InsertInternal works properly, this should not be needed
+				// rc=newleftnode.SetKey(0,key) //first key entry, offset=0
+				// if (rc) {  return rc; }
+				// rc=newleftnode.SetVal(0,value) //first key entry, offset=0
+				// if (rc) {  return rc; }
+				// rc=newrightnote.Serialize(buffercache,rightleaf);
+				// if (rc) {  return rc; }
 			}
 			break;
 		case BTREE_LEAF_NODE:
@@ -383,7 +382,7 @@ ERROR_T BTreeIndex::InsertInternal(const SIZE_T &node,
 						Insert_Full(offset,key,value,node); //function to insert into a full leaf, with splitting
 					}
 				} else if (testkey==key) { //if the key already exists
-					return ERROR_CONFLICT // it is an error for an insert
+					return ERROR_CONFLICT; // it is an error for an insert
 				}
 			}
 			//if we get here, then none of the existing keys in the leaf need to be shifted
@@ -511,7 +510,7 @@ ERROR_T BTreeIndex::Insert(const KEY_T &key, const VALUE_T &value)
 // offset is the index of the pointer to the currect node that needs to be split (child)
 // split is the index of the split in child
 // nodeType is the type of the child node
-ERROR_T BTreeIndex::Split(SIZE_T node, SIZE_T ptr, BTreeNode &b, int offset, SIZE_T split, int &nodeType)
+ERROR_T BTreeIndex::Split(SIZE_T &node, SIZE_T &ptr, BTreeNode &b, int offset, SIZE_T split, int &nodeType)
 {
   ERROR_T rc;
   SIZE_T newNode;
@@ -527,9 +526,9 @@ ERROR_T BTreeIndex::Split(SIZE_T node, SIZE_T ptr, BTreeNode &b, int offset, SIZ
   BTreeNode n(nodeType, b.info.keysize, b.info.valuesize, buffercache->GetBlockSize());
 
   // copy second half of values from child to to new node
-  for (i=split; i<b.info.numkeys-1; i++)
+  for (int i=split; i<b.info.numkeys-1; i++)
   {
-    for (j=0; j<b.info.numkeys-middle; i++)
+    for (int j=(unsigned)0; j<b.info.numkeys-split; i++)
     {
       KEY_T pKey;
       rc = child.GetKey(i, pKey);
@@ -540,8 +539,9 @@ ERROR_T BTreeIndex::Split(SIZE_T node, SIZE_T ptr, BTreeNode &b, int offset, SIZ
   }
 
   // add pointer from parent to new node
+  SIZE_T nPtr;
   KEY_T nKey;
-  nPtr = n.ResolvePtr(0)
+  nPtr = (SIZE_T)n.ResolvePtr(0);
   rc = b.SetPtr(offset+1, nPtr);
   if (rc) { return rc; }
   rc = n.GetKey(0, nKey);
