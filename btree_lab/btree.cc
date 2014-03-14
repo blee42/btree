@@ -563,7 +563,10 @@ ERROR_T BTreeIndex::Split(const SIZE_T offset,
   // create new node
   rc = AllocateNode(newNode);
   if (rc) { return rc; }
-  n.Unserialize(buffercache, newNode);
+  BTreeNode n(b.info.nodetype, b.info.keysize, b.info.valuesize, buffercache->GetBlockSize());
+  n.info.rootnode=b.info.rootnode;
+  n.info.parentnode=nodenum;
+  n.info.numkeys=0;
 
   // increment number of keys in parent
   parent.info.numkeys++;
