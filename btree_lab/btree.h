@@ -75,12 +75,9 @@ class BTreeIndex {
              const KEY_T &key,
              const VALUE_T &value);
 
-  ERROR_T Split(SIZE_T &node, 
-              SIZE_T &ptr, 
-              BTreeNode &b, 
-              int offset, 
-              SIZE_T split, 
-              int &nodeType);
+  ERROR_T Split(const SIZE_T offset,
+            const SIZE_T &nodenum,
+            BTreeNode &b);
   
   ERROR_T    DisplayInternal(const SIZE_T &node,
 			       ostream &o, 

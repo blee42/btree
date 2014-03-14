@@ -340,11 +340,12 @@ ERROR_T BTreeIndex::InsertInternal(const SIZE_T &nodenum,
 				if (rc) { return rc; }
 				return InsertInternal(ptr,op,key,value);
 			} else {
-				// There are no keys at all on this node\
+				// There are no keys at all on this node
 				// an internode should always have at least 1 key
 				// This means we are on the first insert at the rootnode, and ROOT has no keys.
 				// split the root into 2 leaves
-				//Insert the new key
+				
+        //Insert the new key
 				b.info.numkeys = 1; //now it has one key(offset)
 				rc=b.SetKey(0,key); //first key goes in the first offset.
 				if (rc) {  return rc; }
@@ -534,51 +535,115 @@ ERROR_T BTreeIndex::Insert(const KEY_T &key, const VALUE_T &value)
 // offset is the index of the pointer to the currect node that needs to be split (child)
 // split is the index of the split in child
 // nodeType is the type of the child node
-ERROR_T BTreeIndex::Split(SIZE_T &node, SIZE_T &ptr, BTreeNode &b, int offset, SIZE_T split, int &nodeType)
+ERROR_T BTreeIndex::Split(const SIZE_T offset,
+             const SIZE_T &nodenum,
+             BTreeNode &b)
+  // SIZE_T &node, SIZE_T &ptr, BTreeNode &b, int offset, SIZE_T split, int &nodeType)
 {
   ERROR_T rc;
   SIZE_T newNode;
-  BTreeNode child;
+  BTreeNode parent;
+  SIZE_T middle;
 
-  // unserialize node that needs to be split (child)
-  rc = child.Unserialize(buffercache, ptr);
+  // find middle index of node that needs to be split
+  middle = b.info.numkeys / 2;
+  // find key at middle index
+  KEY_T middleKey;
+  rc = b.GetKey(middle, middleKey);
   if (rc) { return rc; }
 
-  // new node
+  // unserialize parent node
+  rc = parent.Unserialize(buffercache, b.info.parentnode);
+  if (rc) { return rc; }
+
+  // create new node
   rc = AllocateNode(newNode);
   if (rc) { return rc; }
-  BTreeNode n(nodeType, b.info.keysize, b.info.valuesize, buffercache->GetBlockSize());
+  BTreeNode n(b.info.nodetype, b.info.keysize, b.info.valuesize, buffercache->GetBlockSize());
 
-  // copy second half of values from child to to new node
-  for (int i=split; i<b.info.numkeys-1; i++)
+  // increment number of keys in parent
+  parent.info.numkeys++;
+
+  // find offset in parent
+  SIZE_T pOffset;
+  SIZE_T tempPtr;
+  for (unsigned int i=0; i<=parent.info.numkeys-1; i++)
   {
-    for (int j=(unsigned)0; j<b.info.numkeys-split; i++)
-    {
-      KEY_T pKey;
-      rc = child.GetKey(i, pKey);
-      if (rc) { return rc; }
-      rc = n.SetKey(j, pKey);
-      if (rc) { return rc; }
+    // check if the ith ptr points to child node
+    if (parent.GetPtr(i,tempPtr) == nodenum) {
+      pOffset=tempPtr;
     }
   }
 
-  // add pointer from parent to new node
-  SIZE_T nPtr;
-  KEY_T nKey;
-  rc = n.GetPtr(0, nPtr);
-  if (rc) { return rc; }
-  rc = b.SetPtr(offset+1, nPtr);
-  if (rc) { return rc; }
-  rc = n.GetKey(0, nKey);
-  if (rc) { return rc; }
-  rc = b.SetKey(offset+1, nKey);
+  // checks if parent needs to be split
+  if (parent.info.numkeys > parent.info.GetNumSlotsAsInterior())
+  {
+    // Split(pOffset,b.info.parentnode,parent);
+    return ERROR_UNIMPL;
+  }
+  // if parent node is not full add key and pointer to new node
+  else 
+  {
+    rc = parent.SetKey(pOffset-1, middleKey);
+    if (rc) { return rc; }
+    rc = parent.SetPtr(pOffset, newNode);
+    if (rc) { return rc; }
+  }
+
+  switch(b.info.nodetype)
+  {
+    case BTREE_LEAF_NODE:
+      // copy half of the keys and values to new node
+      for (unsigned int i=middle+1; i<=b.info.numkeys; i++)
+      {
+        // incremember the number of keys in new node
+        n.info.numkeys++;
+        KEY_T cKey;
+        VALUE_T cVal;
+
+        rc = b.GetKey(i, cKey);
+        if (rc) { return rc; }
+        rc = n.SetKey(i-middle-1, cKey);
+        if (rc) { return rc; }
+        rc = b.GetVal(i, cVal);
+        if (rc) { return rc; }
+        rc = n.GetVal(i, cVal);
+        if (rc) { return rc; }
+      }
+      // set new number of keys in child
+      b.info.numkeys=middle+1;
+      break;
+    case BTREE_INTERIOR_NODE:
+      // copy half of the keys and pointers to new node
+      for (unsigned int i=middle+1; i<=b.info.numkeys; i++)
+      {
+        // increment the number of keys in new node
+        n.info.numkeys++;
+        KEY_T cKey;
+        SIZE_T cPtr;
+
+        rc = b.GetKey(i, cKey);
+        if (rc) { return rc; }
+        rc = n.SetKey(i-middle-1, cKey);
+        if (rc) { return rc; }
+        rc = b.GetPtr(i, cPtr);
+        if (rc) { return rc; }
+        rc = n.SetPtr(i-middle-1, cPtr);
+        if (rc) { return rc; }
+      }
+      // set new number of keys in child
+      b.info.numkeys=middle+1;
+      break;
+    default:
+      return ERROR_INSANE;
+  }
 
   // save changes to disk
   rc = n.Serialize(buffercache, newNode);
   if(rc){return rc;}
-  rc = child.Serialize(buffercache, ptr);
+  rc = b.Serialize(buffercache, nodenum);
   if(rc){return rc;}
-  rc = b.Serialize(buffercache, node);
+  rc = parent.Serialize(buffercache, b.info.parentnode);
   if(rc){return rc;}
 
   return rc;
