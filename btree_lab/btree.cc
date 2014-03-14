@@ -269,8 +269,6 @@ ERROR_T BTreeIndex::Insert_NotFull(const SIZE_T offset,
   KEY_T temp_key;
   VALUE_T temp_val;
   SIZE_T temp_offset;
-  KeyValuePair temp_kvpair(temp_key,temp_val);
-  KeyValuePair kvpair(key,value); //syntax for use would be b.SetKeyVal(offset,&kvpair)
 
   assert(b.info.nodetype == BTREE_LEAF_NODE); //Insert_NotFull should only be called at a leaf node
 
@@ -278,13 +276,21 @@ ERROR_T BTreeIndex::Insert_NotFull(const SIZE_T offset,
 	for (temp_offset=(b.info.numkeys-1);temp_offset>=offset;temp_offset--) {
 		//obtain key and value starting from the rightmost kvpair
 		b.info.numkeys++;
-		rc = b.GetKeyVal(temp_offset,temp_kvpair);
+		rc = b.GetKey(temp_offset,temp_key);
+		if (rc) {  return rc; }
+		rc = b.GetVal(temp_offset,temp_val);
 		if (rc) {  return rc; }
 		//save the key/value into the next slot (which should be open since leaf not full)
-		rc = b.SetKeyVal(temp_offset+1,temp_kvpair);
+		rc = b.SetKey(temp_offset+1,temp_key);
+		if (rc) {  return rc; }
+		rc = b.SetVal(temp_offset+1,temp_val);
+		if (rc) {  return rc; }
 	}
 	//all offset+1 pairs should now be right shifted
-	rc = b.SetKeyVal(offset,kvpair); //insert new pair into leaf
+	rc = b.SetKey(offset,key);//insert new pair into leaf
+	if (rc) {  return rc; }
+	rc = b.SetVal(offset,val);
+	if (rc) {  return rc; }
 	return b.Serialize(buffercache,nodenum);
 }
 
