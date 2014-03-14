@@ -369,18 +369,22 @@ ERROR_T BTreeIndex::InsertInternal(const SIZE_T &nodenum,
 				if (rc) {  return rc; }
 				
 				//Left Leaf
-				BTreeNode newleftnode(BTREE_LEAF_NODE,b.info.keysize,
-					b.info.valuesize,buffercache->GetBlockSize()); //initialize the left node
-				newleftnode.info.parentnode=nodenum;
+				BTreeNode newleftnode; //initialize the left node
 				rc=newleftnode.Unserialize(buffercache,leftleaf); //fill in the node from cache at the left block
 				if (rc) {  return rc; }	
+				newleftnode.info.nodetype=BTREE_LEAF_NODE;
+				newleftnode.info.parentnode=nodenum;
+				newleftnode.info.numkeys=0;
 				rc=newleftnode.Serialize(buffercache,leftleaf); //save and close the node
 				if (rc) {  return rc; }
 				//Right Leaf				
-				BTreeNode newrightnode(BTREE_LEAF_NODE,b.info.keysize,
-					b.info.valuesize,buffercache->GetBlockSize()); //initialize the right node
-				newrightnode.info.parentnode=nodenum;
+				BTreeNode newrightnode; //initialize the right node
 				rc=newrightnode.Unserialize(buffercache,rightleaf); //fill in the node from cache at the block which we just allocated
+				if (rc) {  return rc; }
+				newrightnode.info.nodetype=BTREE_LEAF_NODE;
+				newrightnode.info.parentnode=nodenum;
+				newrightnode.info.numkeys=0;
+				rc=newleftnode.Serialize(buffercache,leftleaf); //save and close the node
 				if (rc) {  return rc; }
 				return InsertInternal(rightleaf,op,key,value);
         
