@@ -289,7 +289,7 @@ ERROR_T BTreeIndex::Insert_NotFull(const SIZE_T offset,
 	//all offset+1 pairs should now be right shifted
 	rc = b.SetKey(offset,key);//insert new pair into leaf
 	if (rc) {  return rc; }
-	rc = b.SetVal(offset,val);
+	rc = b.SetVal(offset,value);
 	if (rc) {  return rc; }
 	return b.Serialize(buffercache,nodenum);
 }
