@@ -265,25 +265,25 @@ ERROR_T BTreeIndex::Insert_NotFull(const SIZE_T offset,
 					   const SIZE_T &nodenum,
 					   BTreeNode &b)
 {
+  
   ERROR_T rc;
   KEY_T temp_key;
   VALUE_T temp_val;
   SIZE_T temp_offset;
 
   assert(b.info.nodetype == BTREE_LEAF_NODE); //Insert_NotFull should only be called at a leaf node
-
+	b.info.numkeys++;
   //First step is to shift all values from offset to the right
-	for (temp_offset=(b.info.numkeys-1);temp_offset>=offset;temp_offset--) {
+	for (temp_offset=(b.info.numkeys-1);temp_offset>offset;temp_offset--) {
 		//obtain key and value starting from the rightmost kvpair
-		b.info.numkeys++;
-		rc = b.GetKey(temp_offset,temp_key);
+		rc = b.GetKey(temp_offset-1,temp_key);
 		if (rc) {  return rc; }
-		rc = b.GetVal(temp_offset,temp_val);
+		rc = b.GetVal(temp_offset-1,temp_val);
 		if (rc) {  return rc; }
 		//save the key/value into the next slot (which should be open since leaf not full)
-		rc = b.SetKey(temp_offset+1,temp_key);
+		rc = b.SetKey(temp_offset,temp_key);
 		if (rc) {  return rc; }
-		rc = b.SetVal(temp_offset+1,temp_val);
+		rc = b.SetVal(temp_offset,temp_val);
 		if (rc) {  return rc; }
 	}
 	//all offset+1 pairs should now be right shifted
@@ -375,34 +375,33 @@ ERROR_T BTreeIndex::InsertInternal(const SIZE_T &nodenum,
 				if (rc) {  return rc; }
 				
 				//Left Leaf
-				BTreeNode newleftnode; //initialize the left node
-				rc=newleftnode.Unserialize(buffercache,leftleaf); //fill in the node from cache at the left block
-				if (rc) {  return rc; }	
-				newleftnode.info.nodetype=BTREE_LEAF_NODE;
+				BTreeNode newleftnode(BTREE_LEAF_NODE,
+					b.info.keysize,
+					b.info.valuesize,
+					buffercache->GetBlockSize()); //initialize the left node
+				if (rc) {  return rc; }
+				//fill it with what we want
+				newleftnode.info.rootnode=b.info.rootnode;
 				newleftnode.info.parentnode=nodenum;
 				newleftnode.info.numkeys=0;
 				rc=newleftnode.Serialize(buffercache,leftleaf); //save and close the node
 				if (rc) {  return rc; }
 				//Right Leaf				
-				BTreeNode newrightnode; //initialize the right node
-				rc=newrightnode.Unserialize(buffercache,rightleaf); //fill in the node from cache at the block which we just allocated
+				BTreeNode newrightnode(BTREE_LEAF_NODE,
+					b.info.keysize,
+					b.info.valuesize,
+					buffercache->GetBlockSize()); //initialize the right node
 				if (rc) {  return rc; }
-				newrightnode.info.nodetype=BTREE_LEAF_NODE;
+				//fill it with what we want
+				newrightnode.info.rootnode=b.info.rootnode;
 				newrightnode.info.parentnode=nodenum;
 				newrightnode.info.numkeys=0;
-				rc=newleftnode.Serialize(buffercache,leftleaf); //save and close the node
+				rc=newrightnode.Serialize(buffercache,rightleaf); //save and close the node
 				if (rc) {  return rc; }
 				return InsertInternal(rightleaf,op,key,value);
         
 				// it will recurse and add the new value to the end of the leaf we just created.
 				
-	      //other option would be to just manually set the key/val here, but if InsertInternal works properly, this should not be needed
-				// rc=newleftnode.SetKey(0,key) //first key entry, offset=0
-				// if (rc) {  return rc; }
-				// rc=newleftnode.SetVal(0,value) //first key entry, offset=0
-				// if (rc) {  return rc; }
-				// rc=newrightnote.Serialize(buffercache,rightleaf);
-				// if (rc) {  return rc; }
 			}
 			break;
 		case BTREE_LEAF_NODE:
@@ -412,9 +411,9 @@ ERROR_T BTreeIndex::InsertInternal(const SIZE_T &nodenum,
 				if (rc) {  return rc; }
 				if (key<testkey) { // if there exists a key that is greater than the new key
 					if (b.info.numkeys < 2*b.info.GetNumSlotsAsLeaf()/3) { //if not 2/3rds full
-						Insert_NotFull(offset,key,value,nodenum,b); //function to insert into a leaf that is not full
+						return Insert_NotFull(offset,key,value,nodenum,b); //function to insert into a leaf that is not full
 					} else {
-						Insert_Full(offset,key,value,nodenum,b); //function to insert into a full leaf, with splitting
+						return Insert_Full(offset,key,value,nodenum,b); //function to insert into a full leaf, with splitting
 					}
 				} else if (testkey==key) { //if the key already exists
 					return ERROR_CONFLICT; // it is an error for an insert
@@ -424,9 +423,9 @@ ERROR_T BTreeIndex::InsertInternal(const SIZE_T &nodenum,
 			//check if it is full, and insert at the end
 			if (b.info.numkeys < 2*b.info.GetNumSlotsAsLeaf()/3) { //if not 2/3rds full
 			// offset=b.info.numkeys since we are at the end of the existing keys
-				Insert_NotFull(b.info.numkeys,key,value,nodenum,b); //function to insert into leaf that is not full
+				return Insert_NotFull(b.info.numkeys,key,value,nodenum,b); //function to insert into leaf that is not full
 			} else {
-				Insert_Full(b.info.numkeys,key,value,nodenum,b); //function to insert into a full leaf, with splitting
+				return Insert_Full(b.info.numkeys,key,value,nodenum,b); //function to insert into a full leaf, with splitting
 			}
 			break;
 		default:
