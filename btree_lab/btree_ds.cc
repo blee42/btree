@@ -37,7 +37,7 @@ ostream & NodeMetadata::Print(ostream &os) const
 				   nodetype==BTREE_LEAF_NODE ? "LEAF_NODE" : "UNKNOWN_TYPE")
      << ", keysize="<<keysize<<", valuesize="<<valuesize<<", blocksize="<<blocksize
      << ", rootnode="<<rootnode<<", freelist="<<freelist<<", numkeys="<<numkeys
-	 <<", parentnode="<<parendnode<<")";
+	 <<", parentnode="<<parentnode<<")";
   return os;
 }
 

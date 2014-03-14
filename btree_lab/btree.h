@@ -65,7 +65,8 @@ class BTreeIndex {
   ERROR_T Insert_Full(const SIZE_T offset,
              const KEY_T &key,
              const VALUE_T &value,
-             const SIZE_T &node);
+             const SIZE_T &node,
+             BTreeNode &b);
 
   ERROR_T InsertInternal(const SIZE_T &node,
              const BTreeOp op,
