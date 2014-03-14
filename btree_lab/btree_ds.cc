@@ -36,7 +36,8 @@ ostream & NodeMetadata::Print(ostream &os) const
 				   nodetype==BTREE_INTERIOR_NODE ? "INTERIOR_NODE" :
 				   nodetype==BTREE_LEAF_NODE ? "LEAF_NODE" : "UNKNOWN_TYPE")
      << ", keysize="<<keysize<<", valuesize="<<valuesize<<", blocksize="<<blocksize
-     << ", rootnode="<<rootnode<<", freelist="<<freelist<<", numkeys="<<numkeys<<")";
+     << ", rootnode="<<rootnode<<", freelist="<<freelist<<", numkeys="<<numkeys
+	 <<", parentnode="<<parendnode<<")";
   return os;
 }
 
@@ -64,7 +65,8 @@ BTreeNode::BTreeNode(int node_type, SIZE_T key_size, SIZE_T value_size, SIZE_T b
   info.blocksize=block_size;
   info.rootnode=0;
   info.freelist=0;
-  info.numkeys=0;				       
+  info.numkeys=0;
+  info.parentnode=0;  
   data=0;
   if (info.nodetype!=BTREE_UNALLOCATED_BLOCK && info.nodetype!=BTREE_SUPERBLOCK) {
     data = new char [info.GetNumDataBytes()];
@@ -80,7 +82,8 @@ BTreeNode::BTreeNode(const BTreeNode &rhs)
   info.blocksize=rhs.info.blocksize;
   info.rootnode=rhs.info.rootnode;
   info.freelist=rhs.info.freelist;
-  info.numkeys=rhs.info.numkeys;				       
+  info.numkeys=rhs.info.numkeys;
+  info.parentnode=rhs.info.parentnode;  
   data=0;
   if (rhs.data) { 
    data=new char [info.GetNumDataBytes()];
