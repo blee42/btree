@@ -529,12 +529,6 @@ ERROR_T BTreeIndex::Insert(const KEY_T &key, const VALUE_T &value)
   return InsertInternal(superblock.info.rootnode, BTREE_OP_INSERT, key, value);
 }
 
-// node is the block number of the current node (parent)
-// ptr is the block number of the node that needs to be split (child)
-// b is the unserialized current node (parent)
-// offset is the index of the pointer to the currect node that needs to be split (child)
-// split is the index of the split in child
-// nodeType is the type of the child node
 ERROR_T BTreeIndex::Split(const SIZE_T offset,
              const SIZE_T &nodenum,
              BTreeNode &b)
