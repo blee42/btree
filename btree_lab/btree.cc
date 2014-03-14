@@ -546,7 +546,6 @@ ERROR_T BTreeIndex::Split(const SIZE_T offset,
   ERROR_T rc;
   SIZE_T newNode;
   BTreeNode parent;
-  BTreeNode n;
   SIZE_T middle;
 
   // find middle index of node that needs to be split
