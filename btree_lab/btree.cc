@@ -278,13 +278,13 @@ ERROR_T BTreeIndex::Insert_NotFull(const SIZE_T offset,
 	for (temp_offset=(b.info.numkeys-1);temp_offset>=offset;temp_offset--) {
 		//obtain key and value starting from the rightmost kvpair
 		b.info.numkeys++;
-		rc = b.GetKeyVal(temp_offset,&temp_kvpair);
+		rc = b.GetKeyVal(temp_offset,temp_kvpair);
 		if (rc) {  return rc; }
 		//save the key/value into the next slot (which should be open since leaf not full)
-		rc = b.SetKeyVal(temp_offset+1,&temp_kvpair);
+		rc = b.SetKeyVal(temp_offset+1,temp_kvpair);
 	}
 	//all offset+1 pairs should now be right shifted
-	rc = b.SetKeyVal(offset,&kvpair); //insert new pair into leaf
+	rc = b.SetKeyVal(offset,kvpair); //insert new pair into leaf
 	return b.Serialize(buffercache,nodenum);
 }
 
