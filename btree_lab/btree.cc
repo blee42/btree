@@ -269,13 +269,14 @@ ERROR_T BTreeIndex::Insert_NotFull(const SIZE_T offset,
 ERROR_T BTreeIndex::Insert_Full(const SIZE_T offset,
 					   const KEY_T &key,
 					   const VALUE_T &value,
-					   const SIZE_T &node)
+					   const SIZE_T nodenum,
+					   BTreeNode &b)
 {
 
 	return ERROR_INSANE;
 }
 
-ERROR_T BTreeIndex::InsertInternal(const SIZE_T &node,
+ERROR_T BTreeIndex::InsertInternal(const SIZE_T &nodenum,
 					   const BTreeOp op,
 					   const KEY_T &key,
 					   const VALUE_T &value)
@@ -345,19 +346,18 @@ ERROR_T BTreeIndex::InsertInternal(const SIZE_T &node,
 				if (rc) {  return rc; }
 				
 				//Left Leaf
-				BTreeNode newleftnode; //initialize the left node
-				rc=newleftnode.Unserialize(buffercache,leftleaf); //fill in the node from cache at the left block
-				if (rc) {  return rc; }
-				newleftnode.info.nodetype=BTREE_LEAF_NODE; //set it to a leaf node
+				BTreeNode newleftnode(BTREE_LEAF_NODE,b.info.keysize,
+					b.info.valuesize,buffercache->GetBlockSize()); //initialize the left node
 				newleftnode.info.parentnode=node;
+				rc=newleftnode.Unserialize(buffercache,leftleaf); //fill in the node from cache at the left block
+				if (rc) {  return rc; }	
 				rc=newleftnode.Serialize(buffercache,leftleaf); //save and close the node
 				if (rc) {  return rc; }
 				//Right Leaf				
-				BTreeNode newrightnode; //initialize the right node
+				BTreeNode newrightnode(BTREE_LEAF_NODE,b.info.keysize,
+					b.info.valuesize,buffercache->GetBlockSize()); //initialize the right node
 				rc=newrightnode.Unserialize(buffercache,rightleaf); //fill in the node from cache at the block which we just allocated
 				if (rc) {  return rc; }
-				newrightnode.info.nodetype=BTREE_LEAF_NODE; //set it to a leaf node
-				newrightnode.info.parentnode=node;
 				return InsertInternal(rightleaf,op,key,value)
 				// it will recurse and add the new value to the end of the leaf we just created.
 				
@@ -379,7 +379,7 @@ ERROR_T BTreeIndex::InsertInternal(const SIZE_T &node,
 					if (b.info.numkeys < 2*b.info.GetNumSlotsAsLeaf/3) { //if not 2/3rds full
 						Insert_NotFull(offset,key,value); //function to insert into a leaf that is not full
 					} else {
-						Insert_Full(offset,key,value,node); //function to insert into a full leaf, with splitting
+						Insert_Full(offset,key,value,node,b); //function to insert into a full leaf, with splitting
 					}
 				} else if (testkey==key) { //if the key already exists
 					return ERROR_CONFLICT // it is an error for an insert
@@ -391,7 +391,7 @@ ERROR_T BTreeIndex::InsertInternal(const SIZE_T &node,
 			// offset=b.info.numkeys since we are at the end of the existing keys
 				Insert_NotFull(b.info.numkeys,key,value); //function to insert into leaf that is not full
 			} else {
-				Insert_Full(b.info.numkeys,key,value,node); //function to insert into a full leaf, with splitting
+				Insert_Full(b.info.numkeys,key,value,node,b); //function to insert into a full leaf, with splitting
 			}
 			break;
 		default:
