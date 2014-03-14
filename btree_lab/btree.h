@@ -70,18 +70,22 @@ class BTreeIndex {
              const SIZE_T &node,
              BTreeNode &b);
 
-  ERROR_T InsertInternal(const SIZE_T &node,
+  ERROR_T   InsertInternal(const SIZE_T &node,
              const BTreeOp op,
              const KEY_T &key,
              const VALUE_T &value);
 
-  ERROR_T Split(const SIZE_T offset,
+  ERROR_T   Split(const SIZE_T offset,
             const SIZE_T &nodenum,
             BTreeNode &b);
   
-  ERROR_T    DisplayInternal(const SIZE_T &node,
-			       ostream &o, 
-			       const BTreeDisplayType display_type=BTREE_DEPTH) const;
+  ERROR_T   DisplayInternal(const SIZE_T &node,
+		        ostream &o, 
+		        const BTreeDisplayType display_type=BTREE_DEPTH) const;
+
+  ERROR_T SanityCheckInternal(SIZE_T nodenum,
+            KEY_T &prev) const;
+
 
 public:
   //
