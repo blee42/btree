@@ -32,6 +32,7 @@ struct NodeMetadata {
   SIZE_T rootnode; //meaningful only for superblock
   SIZE_T freelist; //meaningful only for superblock or a free block
   SIZE_T numkeys;
+  SIZE_T parentnode;
 
   SIZE_T GetNumDataBytes() const;
   SIZE_T GetNumSlotsAsInterior() const;
