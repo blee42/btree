@@ -759,7 +759,6 @@ ERROR_T BTreeIndex::SanityCheck() const
   root = superblock.info.rootnode;
 
   return SanityCheckInternal(root, prev);
-
   // return ERROR_UNIMPL;
 }
 
@@ -793,7 +792,7 @@ ERROR_T BTreeIndex::SanityCheckInternal(SIZE_T nodenum,
       KEY_T cur;
       rc = b.GetKey(i, cur);
       if (rc) { return rc; }
-      // check that current key is not smaller than previous
+      // check that if current key is smaller than previous
       if (cur < prev)
       {
         // violation of BTree property
