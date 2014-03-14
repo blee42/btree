@@ -547,6 +547,7 @@ ERROR_T BTreeIndex::Split(const SIZE_T offset,
   ERROR_T rc;
   SIZE_T newNode;
   BTreeNode parent;
+  BTreeNode n;
   SIZE_T middle;
 
   // find middle index of node that needs to be split
@@ -563,7 +564,7 @@ ERROR_T BTreeIndex::Split(const SIZE_T offset,
   // create new node
   rc = AllocateNode(newNode);
   if (rc) { return rc; }
-  BTreeNode n(b.info.nodetype, b.info.keysize, b.info.valuesize, buffercache->GetBlockSize());
+  n.Unserialize(buffercache, newNode);
 
   // increment number of keys in parent
   parent.info.numkeys++;
@@ -751,11 +752,61 @@ ERROR_T BTreeIndex::Display(ostream &o, BTreeDisplayType display_type) const
 
 ERROR_T BTreeIndex::SanityCheck() const
 {
-  // WRITE ME
-  return ERROR_UNIMPL;
-}
-  
+  KEY_T prev;
+  SIZE_T root;
 
+  // get pointer to root node
+  root = superblock.info.rootnode;
+
+  return SanityCheckInternal(root, prev);
+
+  // return ERROR_UNIMPL;
+}
+
+ERROR_T BTreeIndex::SanityCheckInternal(SIZE_T nodenum,
+         KEY_T &prev) const
+{
+  ERROR_T rc;
+  BTreeNode b;
+  BTreeNode next;
+
+  rc = b.Unserialize(buffercache, nodenum);
+  if (rc) { return rc; }
+
+  // traverse through all pointers/keys
+  for (unsigned int i=0; i<b.info.numkeys; i++)
+  {
+    // check the node type of the pointer
+    SIZE_T ptr;
+    rc = b.GetPtr(i,ptr);
+    if (rc) { return rc; }
+    rc = next.Unserialize(buffercache, ptr);
+
+    if (next.info.nodetype!=BTREE_LEAF_NODE)
+    {
+      rc = SanityCheckInternal(ptr, prev);
+      if (rc) { return rc; }
+    }
+    else // the node is a leaf
+    {
+      // get value at leaf
+      KEY_T cur;
+      rc = b.GetKey(i, cur);
+      if (rc) { return rc; }
+      // check that current key is not smaller than previous
+      if (cur < prev)
+      {
+        // violation of BTree property
+        return ERROR_INSANE;
+      }
+      else {
+        // set new prev key
+        prev = cur;
+      }
+    }
+  }
+  return rc;
+}
 
 ostream & BTreeIndex::Print(ostream &os) const
 {
