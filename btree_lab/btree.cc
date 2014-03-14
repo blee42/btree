@@ -591,6 +591,59 @@ ERROR_T BTreeIndex::Insert(const KEY_T &key, const VALUE_T &value)
 //   return ERROR_INSANE;
 // }
 
+// node is the block number of the current node (parent)
+// ptr is the block number of the node that needs to be split (child)
+// b is the unserialized current node (parent)
+// offset is the index of the pointer to the currect node that needs to be split (child)
+// split is the index of the split in child
+// nodeType is the type of the child node
+ERROR_T BTreeIndex::Split(SIZE_T node, SIZE_T ptr, BTreeNode &b, int offset, SIZE_T split, int &nodeType)
+{
+  ERROR_T rc;
+  SIZE_T newNode;
+  BTreeNode child;
+
+  // unserialize node that needs to be split (child)
+  rc = child.Unserialize(buffercache, ptr);
+  if (rc) { return rc; }
+
+  // new node
+  rc = AllocateNode(newNode);
+  if (rc) { return rc; }
+  BTreeNode n(nodeType, b.info.keysize, b.info.valuesize, buffercache->GetBlockSize());
+
+  // copy second half of values from child to to new node
+  for (i=split; i<b.info.numkeys-1; i++)
+  {
+    for (j=0; j<b.info.numkeys-middle; i++)
+    {
+      KEY_T pKey;
+      rc = child.GetKey(i, pKey);
+      if (rc) { return rc; }
+      rc = n.SetKey(j, pKey);
+      if (rc) { return rc; }
+    }
+  }
+
+  // add pointer from parent to new node
+  KEY_T nKey;
+  nPtr = n.ResolvePtr(0)
+  rc = b.SetPtr(offset+1, nPtr);
+  if (rc) { return rc; }
+  rc = n.GetKey(0, nKey);
+  if (rc) { return rc; }
+  rc = b.SetKey(offset+1, nKey);
+
+  // save changes to disk
+  rc = n.Serialize(buffercache, newNode);
+  if(rc){return rc;}
+  rc = child.Serialize(buffercache, ptr);
+  if(rc){return rc;}
+  rc = b.Serialize(buffercache, node);
+  if(rc){return rc;}
+
+  return rc;
+}
 
 // ERROR_T BTreeIndex::Split(bool &splitFlag, SIZE_T ptr, SIZE_T &middle, BTreeNode &b, SIZE_T node, int offset, int &nodeType)
 // {
