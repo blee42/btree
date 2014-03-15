@@ -294,15 +294,151 @@ ERROR_T BTreeIndex::Insert_NotFull(const SIZE_T offset,
 	return b.Serialize(buffercache,nodenum);
 }
 
+ERROR_T BTreeIndex::Insert_NotFullParent(const SIZE_T newnode,
+					   const KEY_T &key,
+					   BTreeNode &b,
+					   const SIZE_T nodenum)
+{
+
+  ERROR_T rc;
+  SIZE_T temp_offset;
+  SIZE_T temp_ptr;
+  KEY_T temp_key;
+  SIZE_T offset;
+  KEY_T testkey;
+  
+  for (offset=0;offset<=b.info.numkeys;offset++) { 
+      rc=b.GetKey(offset,testkey);
+      if (rc) {  return rc; }
+      if (key<testkey) {
+	// OK, so we now have the first key that's larger
+	// so we need to recurse on the ptr immediately previous to 
+	// this one, if it exists
+		break;
+	  }
+	}
+	
+	b.info.numkeys++;
+	//First step is to shift all values from offset to the right
+	for (temp_offset=(b.info.numkeys-1);temp_offset>offset;temp_offset--) {
+		//obtain key and value starting from the rightmost kvpair
+		rc = b.GetKey(temp_offset-1,temp_key);
+		if (rc) {  return rc; }
+		rc = b.GetPtr(temp_offset-1,temp_ptr);
+		if (rc) {  return rc; }
+		//save the key/value into the next slot (which should be open since leaf not full)
+		rc = b.SetKey(temp_offset,temp_key);
+		if (rc) {  return rc; }
+		rc = b.SetPtr(temp_offset,temp_ptr);
+		if (rc) {  return rc; }
+	}
+	//all offset+1 pairs should now be right shifted
+	rc = b.SetKey(offset,key);//insert new pair into leaf
+	if (rc) {  return rc; }
+	rc = b.SetPtr(offset,newnode);
+	if (rc) {  return rc; }
+	return b.Serialize(buffercache,nodenum);
+}
+
+ERROR_T BTreeIndex::Insert_FullParent(const SIZE_T newnode,
+					   const KEY_T &key,
+					   BTreeNode &b,
+					   const SIZE_T nodenum)
+{
+
+  ERROR_T rc;
+  SIZE_T temp_offset;
+  SIZE_T temp_ptr;
+  KEY_T temp_key;
+  SIZE_T offset;
+  KEY_T testkey;
+  
+  for (offset=0;offset<=b.info.numkeys;offset++) { 
+      rc=b.GetKey(offset,testkey);
+      if (rc) {  return rc; }
+      if (key<testkey) {
+	// OK, so we now have the first key that's larger
+	// so we need to recurse on the ptr immediately previous to 
+	// this one, if it exists
+		break;
+	  }
+	}
+
+	b.info.numkeys++;
+  //First step is to shift all values from offset to the right
+	for (temp_offset=(b.info.numkeys-1);temp_offset>offset;temp_offset--) {
+		//obtain key and value starting from the rightmost kvpair
+		rc = b.GetKey(temp_offset-1,temp_key);
+		if (rc) {  return rc; }
+		rc = b.GetPtr(temp_offset-1,temp_ptr);
+		if (rc) {  return rc; }
+		//save the key/value into the next slot (which should be open since leaf not full)
+		rc = b.SetKey(temp_offset,temp_key);
+		if (rc) {  return rc; }
+		rc = b.SetPtr(temp_offset,temp_ptr);
+		if (rc) {  return rc; }
+	}
+	//all offset+1 pairs should now be right shifted
+	rc = b.SetKey(offset,key);//insert new pair into leaf
+	if (rc) {  return rc; }
+	rc = b.SetPtr(offset,newnode);
+	if (rc) {  return rc; }
+
+	rc = Split(nodenum,b,temp_ptr,temp_key);
+	if (rc) {  return rc; }
+ 	BTreeNode parent;
+ 	parent.Unserialize(buffercache,b.info.parentnode);
+ 	if (parent.info.numkeys > (2*b.info.GetNumSlotsAsLeaf()/3)) {
+ 		return Insert_FullParent(temp_ptr,temp_key,parent,b.info.parentnode);
+ 	} else {
+ 		return Insert_NotFullParent(temp_ptr,temp_key,parent,b.info.parentnode);
+	}
+}  
+
 ERROR_T BTreeIndex::Insert_Full(const SIZE_T offset,
 					   const KEY_T &key,
 					   const VALUE_T &value,
 					   const SIZE_T &nodenum,
 					   BTreeNode &b)
 {
+  ERROR_T rc;
+  SIZE_T temp_offset;
+  KEY_T temp_key;
+  SIZE_T temp_ptr;
+  VALUE_T temp_val;
 
-	return ERROR_UNIMPL;
-}
+  // PSEUDOCODE
+	b.info.numkeys++;
+  //First step is to shift all values from offset to the right
+	for (temp_offset=(b.info.numkeys-1);temp_offset>offset;temp_offset--) {
+		//obtain key and value starting from the rightmost kvpair
+		rc = b.GetKey(temp_offset-1,temp_key);
+		if (rc) {  return rc; }
+		rc = b.GetVal(temp_offset-1,temp_val);
+		if (rc) {  return rc; }
+		//save the key/value into the next slot (which should be open since leaf not full)
+		rc = b.SetKey(temp_offset,temp_key);
+		if (rc) {  return rc; }
+		rc = b.SetVal(temp_offset,temp_val);
+		if (rc) {  return rc; }
+	}
+	//all offset+1 pairs should now be right shifted
+	rc = b.SetKey(offset,key);//insert new pair into leaf
+	if (rc) {  return rc; }
+	rc = b.SetVal(offset,value);
+	if (rc) {  return rc; }
+	Split(nodenum,b,temp_ptr,temp_key);
+
+ 	BTreeNode parent;
+ 	parent.Unserialize(buffercache,b.info.parentnode);
+ 	if (parent.info.numkeys > (2*b.info.GetNumSlotsAsLeaf()/3)) {
+ 		return Insert_FullParent(temp_ptr,temp_key,parent,b.info.parentnode);
+ 	} else {
+ 		return Insert_NotFullParent(temp_ptr,temp_key,parent,b.info.parentnode);
+	}
+}  
+
+
 
 ERROR_T BTreeIndex::InsertInternal(const SIZE_T &nodenum,
 					   const BTreeOp op,
