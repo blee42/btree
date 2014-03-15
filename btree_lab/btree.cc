@@ -539,10 +539,11 @@ ERROR_T BTreeIndex::Insert(const KEY_T &key, const VALUE_T &value)
 }
 
 ERROR_T BTreeIndex::Split(const SIZE_T &nodenum,
-             BTreeNode &b)
+             BTreeNode &b,
+             SIZE_T newNode,
+             KEY_T &mid)
 {
   ERROR_T rc;
-  SIZE_T newNode;
   SIZE_T middle;
 
   // find middle split index
@@ -602,6 +603,10 @@ ERROR_T BTreeIndex::Split(const SIZE_T &nodenum,
     default:
       return ERROR_INSANE;
   }
+
+  // save the first key on the new node as mid
+  rc = n.GetKey(0,mid);
+  if (rc) { return rc; }
 
   // save changes to disk
   rc = n.Serialize(buffercache, newNode);

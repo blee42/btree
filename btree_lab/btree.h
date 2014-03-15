@@ -76,7 +76,9 @@ class BTreeIndex {
              const VALUE_T &value);
 
   ERROR_T   Split(const SIZE_T &nodenum,
-            BTreeNode &b);
+            BTreeNode &b,
+            SIZE_T newNode,
+            KEY_T &mid);
   
   ERROR_T   DisplayInternal(const SIZE_T &node,
 		        ostream &o, 
