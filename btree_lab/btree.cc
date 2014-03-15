@@ -342,10 +342,10 @@ ERROR_T BTreeIndex::Insert_NotFullParent(const SIZE_T newnode,
 	return b.Serialize(buffercache,nodenum);
 }
 
-ERROR_T BTreeIndex::Insert_FullParent(const SIZE_T newnode,
+ERROR_T BTreeIndex::Insert_FullParent(const SIZE_T &newnode,
 					   const KEY_T &key,
 					   BTreeNode &b,
-					   const SIZE_T nodenum)
+					   SIZE_T &nodenum)
 {
 
   ERROR_T rc;
@@ -394,7 +394,7 @@ ERROR_T BTreeIndex::Insert_FullParent(const SIZE_T newnode,
  	BTreeNode parent;
  	parent.Unserialize(buffercache,b.info.parentnode);
  	//if (parent.info.numkeys > (2*b.info.GetNumSlotsAsLeaf()/3)) {
- 	if (parent.info.numkeys > 4) {
+ 	if (parent.info.numkeys >= 4) {
  		return Insert_FullParent(temp_ptr,temp_key,parent,b.info.parentnode);
  	} else {
  		return Insert_NotFullParent(temp_ptr,temp_key,parent,b.info.parentnode);
@@ -404,7 +404,7 @@ ERROR_T BTreeIndex::Insert_FullParent(const SIZE_T newnode,
 ERROR_T BTreeIndex::Insert_Full(const SIZE_T offset,
 					   const KEY_T &key,
 					   const VALUE_T &value,
-					   const SIZE_T &nodenum,
+					   SIZE_T &nodenum,
 					   BTreeNode &b)
 {
   ERROR_T rc;
@@ -433,12 +433,13 @@ ERROR_T BTreeIndex::Insert_Full(const SIZE_T offset,
 	if (rc) {  return rc; }
 	rc = b.SetVal(offset,value);
 	if (rc) {  return rc; }
-	Split(nodenum,b,temp_ptr,temp_key);
+	rc=Split(nodenum,b,temp_ptr,temp_key);
+	if (rc) {  return rc; }
 
  	BTreeNode parent;
  	parent.Unserialize(buffercache,b.info.parentnode);
  	//if (parent.info.numkeys > (2*b.info.GetNumSlotsAsLeaf()/3)) {
- 	if (parent.info.numkeys > 4) {
+ 	if (parent.info.numkeys >= 4) {
  		return Insert_FullParent(temp_ptr,temp_key,parent,b.info.parentnode);
  	} else {
  		return Insert_NotFullParent(temp_ptr,temp_key,parent,b.info.parentnode);
@@ -447,7 +448,7 @@ ERROR_T BTreeIndex::Insert_Full(const SIZE_T offset,
 
 
 
-ERROR_T BTreeIndex::InsertInternal(const SIZE_T &nodenum,
+ERROR_T BTreeIndex::InsertInternal(SIZE_T &nodenum,
 					   const BTreeOp op,
 					   const KEY_T &key,
 					   const VALUE_T &value)
@@ -683,7 +684,7 @@ ERROR_T BTreeIndex::Insert(const KEY_T &key, const VALUE_T &value)
   return InsertInternal(superblock.info.rootnode, BTREE_OP_INSERT, key, value);
 }
 
-ERROR_T BTreeIndex::Split(const SIZE_T &nodenum,
+ERROR_T BTreeIndex::Split(SIZE_T &nodenum,
              BTreeNode &b,
              SIZE_T &newNode,
              KEY_T &mid)
@@ -701,6 +702,18 @@ ERROR_T BTreeIndex::Split(const SIZE_T &nodenum,
   n.info.rootnode=b.info.rootnode;
   n.info.parentnode=b.info.parentnode;
   n.info.numkeys=0;
+  //make the newleftNode to be used if case is root
+  SIZE_T newleftNode;
+  BTreeNode nL(BTREE_INTERIOR_NODE, b.info.keysize, b.info.valuesize, buffercache->GetBlockSize());
+  if (b.info.nodetype == BTREE_ROOT_NODE) {
+	rc = AllocateNode(newleftNode);
+	if (rc) { return rc; }
+		  nL.info.rootnode=b.info.rootnode;
+		  nL.info.parentnode=b.info.rootnode;
+		  nL.info.numkeys=0;
+	n.info.nodetype = BTREE_INTERIOR_NODE;
+	n.info.parentnode=b.info.rootnode; 
+  }
 
   switch(b.info.nodetype)
   {
@@ -726,22 +739,72 @@ ERROR_T BTreeIndex::Split(const SIZE_T &nodenum,
       // set new number of keys in child
       b.info.numkeys=middle;
       break;
+	case BTREE_ROOT_NODE:
+		//make the newleftNode, nL
+		  if (rc) { return rc; }
+		// copy all of the root values into the new left node
+      for (unsigned int i=0; i<=b.info.numkeys; i++)
+      {
+        // increment the number of keys in new node
+        nL.info.numkeys++;
+        KEY_T cKey;
+        SIZE_T cPtr;
+		
+		if (i < b.info.numkeys) {
+        rc = b.GetKey(i, cKey);
+        if (rc) { return rc; }
+        rc = nL.SetKey(i, cKey);
+        if (rc) { return ERROR_GENERAL; }
+		}
+        rc = b.GetPtr(i, cPtr);
+        if (rc) { return rc; }
+        rc = nL.SetPtr(i, cPtr);
+        if (rc) { return rc; }
+		
+		BTreeNode temp;
+		rc = temp.Unserialize(buffercache,cPtr);
+        if (rc) { return rc; }
+		temp.info.parentnode=newleftNode;
+		rc = temp.Serialize(buffercache,cPtr);
+        if (rc) { return rc; }
+      }
+	  b.info.numkeys=0; //since root is copied, set root numkeys to 0
+	  rc = b.SetPtr(0,newleftNode); //set the left ptr to point to this new node.
+        if (rc) { return rc; }
+	  rc = b.Serialize(buffercache,nodenum);
+        if (rc) { return rc; }
+	  rc = nL.Serialize(buffercache,newleftNode);
+        if (rc) { return rc; }
+	  //After writing root, we set the newleftNode to be the node we are splitting
+	  nodenum=newleftNode;
+	  rc = b.Unserialize(buffercache,nodenum); //this should now set b as the new left node
+        if (rc) { return rc; }
+		//after the increase in height, treat the split like a normal node.gdb
     case BTREE_INTERIOR_NODE:
       // copy half of the keys and pointers to new node
-      for (unsigned int i=middle; i<b.info.numkeys; i++)
+      for (unsigned int i=middle; i<=b.info.numkeys; i++)
       {
         // increment the number of keys in new node
         n.info.numkeys++;
         KEY_T cKey;
         SIZE_T cPtr;
-
+		
+		if (i < b.info.numkeys) {
         rc = b.GetKey(i, cKey);
         if (rc) { return rc; }
         rc = n.SetKey(i-middle, cKey);
-        if (rc) { return rc; }
+        if (rc) { return ERROR_NOFETCH; }
+		}
         rc = b.GetPtr(i, cPtr);
         if (rc) { return rc; }
         rc = n.SetPtr(i-middle, cPtr);
+        if (rc) { return rc; }
+		
+		BTreeNode temp;
+		rc = temp.Unserialize(buffercache,cPtr);
+        if (rc) { return rc; }
+		temp.info.parentnode=newNode;
+		rc = temp.Serialize(buffercache,cPtr);
         if (rc) { return rc; }
       }
       // set new number of keys in child
@@ -758,9 +821,7 @@ ERROR_T BTreeIndex::Split(const SIZE_T &nodenum,
   // save changes to disk
   rc = n.Serialize(buffercache, newNode);
   if(rc){return rc;}
-  rc = b.Serialize(buffercache, nodenum);
-
-  return rc;
+  return b.Serialize(buffercache, nodenum);
 }
   
 ERROR_T BTreeIndex::Update(const KEY_T &key, const VALUE_T &value)

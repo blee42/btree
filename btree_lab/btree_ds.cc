@@ -156,6 +156,7 @@ char * BTreeNode::ResolveKey(const SIZE_T offset) const
     return data+sizeof(SIZE_T)+offset*(info.keysize+info.valuesize);
     break;
   default:
+	assert(0==1);
     return 0;
   }
 }
