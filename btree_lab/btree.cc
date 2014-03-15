@@ -736,6 +736,17 @@ ERROR_T BTreeIndex::SanityCheckInternal(SIZE_T nodenum,
   // unserialize the current node
   rc = b.Unserialize(buffercache, nodenum);
   if (rc) { return rc; }
+  
+  // // check for cycles
+  // if (b.info.check)
+  // {
+  //   // then this node has already been checked, indicating a cycle
+  //   return ERROR_INSANE;
+  // }
+  // else 
+  // {
+  //   b.info.check = true;
+  // }
 
   // traverse the tree
   for (unsigned int i=0; i<=b.info.numkeys; i++)
@@ -758,20 +769,20 @@ ERROR_T BTreeIndex::SanityCheckInternal(SIZE_T nodenum,
     else
     {
       cout << "next num keys, keys in leaf" << next.info.numkeys << endl;
-      for (unsigned int j=0; j<=next.info.numkeys; j++)
+      for (unsigned int j=0; j<next.info.numkeys; j++)
       {
-        // get value at leaf
-        VALUE_T curVal;
-        rc = next.GetVal(i, curVal);
+        // get key at leaf
+        VALUE_T curKey;
+        rc = next.GetKey(j, curKey);
         if (rc) { return rc; }
 
-        // extract integer from curVal and prevVal
+        // extract integer from curKey and prevKey
         int curr;
         stringstream concatC;
 
-        for (unsigned int k=0; k<curVal.length; k++)
+        for (unsigned int k=0; k<curKey.length; k++)
         {
-          concatC << curVal.data[k];
+          concatC << curKey.data[k];
         }
         concatC >> curr;
 

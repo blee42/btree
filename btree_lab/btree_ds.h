@@ -25,6 +25,7 @@ class BufferCache;
 struct KeyValuePair;
 
 struct NodeMetadata {
+  NodeMetadata(): check(false) {}
   int nodetype;
   SIZE_T keysize; 
   SIZE_T valuesize;
@@ -33,6 +34,7 @@ struct NodeMetadata {
   SIZE_T freelist; //meaningful only for superblock or a free block
   SIZE_T numkeys;
   SIZE_T parentnode;
+  bool check;
 
   SIZE_T GetNumDataBytes() const;
   SIZE_T GetNumSlotsAsInterior() const;
