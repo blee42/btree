@@ -1,4 +1,7 @@
 #include <assert.h>
+#include <iostream>
+#include <sstream>
+#include <string>
 #include "btree.h"
 
 KeyValuePair::KeyValuePair()
@@ -573,7 +576,7 @@ ERROR_T BTreeIndex::Split(const SIZE_T &nodenum,
         if (rc) { return rc; }
         rc = b.GetVal(i, cVal);
         if (rc) { return rc; }
-        rc = n.GetVal(i, cVal);
+        rc = n.SetVal(i-middle-1, cVal);
         if (rc) { return rc; }
       }
       // set new number of keys in child
@@ -714,55 +717,76 @@ ERROR_T BTreeIndex::Display(ostream &o, BTreeDisplayType display_type) const
 
 ERROR_T BTreeIndex::SanityCheck() const
 {
-  KEY_T prevKey;
   SIZE_T root;
 
   // get pointer to root node
   root = superblock.info.rootnode;
 
-  return SanityCheckInternal(root, prevKey);
+  return SanityCheckInternal(root, 0);
   // return ERROR_UNIMPL;
 }
 
 ERROR_T BTreeIndex::SanityCheckInternal(SIZE_T nodenum,
-         KEY_T prevKey) const
+         int prev) const
 {
   ERROR_T rc;
   BTreeNode b;
   BTreeNode next;
 
+  // unserialize the current node
   rc = b.Unserialize(buffercache, nodenum);
   if (rc) { return rc; }
 
-  // traverse through all pointers/keys
-  for (unsigned int i=0; i<b.info.numkeys; i++)
+  // traverse the tree
+  for (unsigned int i=0; i<=b.info.numkeys; i++)
   {
+    cout << "b.info.numkeys:" << b.info.numkeys << endl;
     // check the node type of the pointer
     SIZE_T ptr;
     rc = b.GetPtr(i,ptr);
     if (rc) { return rc; }
     rc = next.Unserialize(buffercache, ptr);
+    if (rc) { return rc; }
 
     if (next.info.nodetype!=BTREE_LEAF_NODE)
     {
-      rc = SanityCheckInternal(ptr, prevKey);
+      rc = SanityCheckInternal(ptr, prev);
+      // cout << "next numkeys" << next.info.numkeys << endl;
       if (rc) { return rc; }
     }
-    else // the node is a leaf
+    // the node is a leaf
+    else
     {
-      // get value at leaf
-      KEY_T curKey;
-      rc = b.GetKey(i, curKey);
-      if (rc) { return rc; }
-      // check that if current key is smaller than previous
-      if (curKey < prevKey)
+      cout << "next num keys, keys in leaf" << next.info.numkeys << endl;
+      for (unsigned int j=0; j<=next.info.numkeys; j++)
       {
-        // violation of BTree property
-        return ERROR_INSANE;
-      }
-      else {
-        // set new prev key
-        prevKey = curKey;
+        // get value at leaf
+        VALUE_T curVal;
+        rc = next.GetVal(i, curVal);
+        if (rc) { return rc; }
+
+        // extract integer from curVal and prevVal
+        int curr;
+        stringstream concatC;
+
+        for (unsigned int k=0; k<curVal.length; k++)
+        {
+          concatC << curVal.data[k];
+        }
+        concatC >> curr;
+
+        // check that if current val is smaller than previous
+        cout << "curr: " << curr << endl;
+        cout << "prev: " << prev << endl;
+        if (curr < prev)
+        {
+          // violation of BTree property
+          return ERROR_INSANE;
+        }
+        else {
+          // set new prev key
+          prev = curr;
+        }
       }
     }
   }

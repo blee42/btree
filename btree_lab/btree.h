@@ -85,7 +85,7 @@ class BTreeIndex {
 		        const BTreeDisplayType display_type=BTREE_DEPTH) const;
 
   ERROR_T SanityCheckInternal(SIZE_T nodenum,
-            KEY_T prev) const;
+            int prev) const;
 
 
 public:
