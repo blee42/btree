@@ -87,7 +87,7 @@ class BTreeIndex {
 
   ERROR_T Split(const SIZE_T &nodenum,
             BTreeNode &b,
-            SIZE_T newNode,
+            SIZE_T &newNode,
             KEY_T &mid);
   
   ERROR_T DisplayInternal(const SIZE_T &node,
