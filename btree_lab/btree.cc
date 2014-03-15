@@ -538,63 +538,22 @@ ERROR_T BTreeIndex::Insert(const KEY_T &key, const VALUE_T &value)
   return InsertInternal(superblock.info.rootnode, BTREE_OP_INSERT, key, value);
 }
 
-ERROR_T BTreeIndex::Split(const SIZE_T offset,
-             const SIZE_T &nodenum,
+ERROR_T BTreeIndex::Split(const SIZE_T &nodenum,
              BTreeNode &b)
 {
   ERROR_T rc;
   SIZE_T newNode;
-  BTreeNode parent;
   SIZE_T middle;
 
-  // find middle index of node that needs to be split
-  middle = b.info.numkeys / 2;
-  // find key at middle index
-  KEY_T middleKey;
-  rc = b.GetKey(middle, middleKey);
-  if (rc) { return rc; }
-
-  // unserialize parent node
-  rc = parent.Unserialize(buffercache, b.info.parentnode);
-  if (rc) { return rc; }
+  // find middle split index
+  middle = b.info.numkeys/3;
 
   // create new node
   rc = AllocateNode(newNode);
   if (rc) { return rc; }
   BTreeNode n(b.info.nodetype, b.info.keysize, b.info.valuesize, buffercache->GetBlockSize());
   n.info.rootnode=b.info.rootnode;
-  // n.info.parentnode=nodenum;
   n.info.numkeys=0;
-
-  // // increment number of keys in parent
-  // parent.info.numkeys++;
-
-  // // find offset in parent
-  // SIZE_T pOffset;
-  // SIZE_T tempPtr;
-  // for (unsigned int i=0; i<=parent.info.numkeys-1; i++)
-  // {
-  //   // check if the ith ptr points to child node
-  //   if ((unsigned int)parent.GetPtr(i,tempPtr) == nodenum) {
-  //     pOffset=tempPtr;
-  //   }
-  // }
-
-  // // checks if parent needs to be split
-  // if (parent.info.numkeys > parent.info.GetNumSlotsAsInterior())
-  // {
-  //   rc = Insert_Full(pOffset,)
-  //   Split(pOffset,b.info.parentnode,parent);
-  //   // return ERROR_UNIMPL;
-  // }
-  // // if parent node is not full add key and pointer to new node
-  // else 
-  // {
-  //   rc = parent.SetKey(pOffset-1, middleKey);
-  //   if (rc) { return rc; }
-  //   rc = parent.SetPtr(pOffset, newNode);
-  //   if (rc) { return rc; }
-  // }
 
   switch(b.info.nodetype)
   {
@@ -648,9 +607,6 @@ ERROR_T BTreeIndex::Split(const SIZE_T offset,
   rc = n.Serialize(buffercache, newNode);
   if(rc){return rc;}
   rc = b.Serialize(buffercache, nodenum);
-  if(rc){return rc;}
-  rc = parent.Serialize(buffercache, b.info.parentnode);
-  if(rc){return rc;}
 
   return rc;
 }
