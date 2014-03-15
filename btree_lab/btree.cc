@@ -541,7 +541,6 @@ ERROR_T BTreeIndex::Insert(const KEY_T &key, const VALUE_T &value)
 ERROR_T BTreeIndex::Split(const SIZE_T offset,
              const SIZE_T &nodenum,
              BTreeNode &b)
-  // SIZE_T &node, SIZE_T &ptr, BTreeNode &b, int offset, SIZE_T split, int &nodeType)
 {
   ERROR_T rc;
   SIZE_T newNode;
@@ -564,37 +563,38 @@ ERROR_T BTreeIndex::Split(const SIZE_T offset,
   if (rc) { return rc; }
   BTreeNode n(b.info.nodetype, b.info.keysize, b.info.valuesize, buffercache->GetBlockSize());
   n.info.rootnode=b.info.rootnode;
-  n.info.parentnode=nodenum;
+  // n.info.parentnode=nodenum;
   n.info.numkeys=0;
 
-  // increment number of keys in parent
-  parent.info.numkeys++;
+  // // increment number of keys in parent
+  // parent.info.numkeys++;
 
-  // find offset in parent
-  SIZE_T pOffset;
-  SIZE_T tempPtr;
-  for (unsigned int i=0; i<=parent.info.numkeys-1; i++)
-  {
-    // check if the ith ptr points to child node
-    if ((unsigned int)parent.GetPtr(i,tempPtr) == nodenum) {
-      pOffset=tempPtr;
-    }
-  }
+  // // find offset in parent
+  // SIZE_T pOffset;
+  // SIZE_T tempPtr;
+  // for (unsigned int i=0; i<=parent.info.numkeys-1; i++)
+  // {
+  //   // check if the ith ptr points to child node
+  //   if ((unsigned int)parent.GetPtr(i,tempPtr) == nodenum) {
+  //     pOffset=tempPtr;
+  //   }
+  // }
 
-  // checks if parent needs to be split
-  if (parent.info.numkeys > parent.info.GetNumSlotsAsInterior())
-  {
-    // Split(pOffset,b.info.parentnode,parent);
-    return ERROR_UNIMPL;
-  }
-  // if parent node is not full add key and pointer to new node
-  else 
-  {
-    rc = parent.SetKey(pOffset-1, middleKey);
-    if (rc) { return rc; }
-    rc = parent.SetPtr(pOffset, newNode);
-    if (rc) { return rc; }
-  }
+  // // checks if parent needs to be split
+  // if (parent.info.numkeys > parent.info.GetNumSlotsAsInterior())
+  // {
+  //   rc = Insert_Full(pOffset,)
+  //   Split(pOffset,b.info.parentnode,parent);
+  //   // return ERROR_UNIMPL;
+  // }
+  // // if parent node is not full add key and pointer to new node
+  // else 
+  // {
+  //   rc = parent.SetKey(pOffset-1, middleKey);
+  //   if (rc) { return rc; }
+  //   rc = parent.SetPtr(pOffset, newNode);
+  //   if (rc) { return rc; }
+  // }
 
   switch(b.info.nodetype)
   {
