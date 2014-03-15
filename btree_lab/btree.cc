@@ -753,18 +753,18 @@ ERROR_T BTreeIndex::Display(ostream &o, BTreeDisplayType display_type) const
 
 ERROR_T BTreeIndex::SanityCheck() const
 {
-  KEY_T prev;
+  KEY_T prevKey;
   SIZE_T root;
 
   // get pointer to root node
   root = superblock.info.rootnode;
 
-  return SanityCheckInternal(root, prev);
+  return SanityCheckInternal(root, prevKey);
   // return ERROR_UNIMPL;
 }
 
 ERROR_T BTreeIndex::SanityCheckInternal(SIZE_T nodenum,
-         KEY_T &prev) const
+         KEY_T prevKey) const
 {
   ERROR_T rc;
   BTreeNode b;
@@ -784,24 +784,24 @@ ERROR_T BTreeIndex::SanityCheckInternal(SIZE_T nodenum,
 
     if (next.info.nodetype!=BTREE_LEAF_NODE)
     {
-      rc = SanityCheckInternal(ptr, prev);
+      rc = SanityCheckInternal(ptr, prevKey);
       if (rc) { return rc; }
     }
     else // the node is a leaf
     {
       // get value at leaf
-      KEY_T cur;
-      rc = b.GetKey(i, cur);
+      KEY_T curKey;
+      rc = b.GetKey(i, curKey);
       if (rc) { return rc; }
       // check that if current key is smaller than previous
-      if (cur < prev)
+      if (curKey < prevKey)
       {
         // violation of BTree property
         return ERROR_INSANE;
       }
       else {
         // set new prev key
-        prev = cur;
+        prevKey = curKey;
       }
     }
   }
