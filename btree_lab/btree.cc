@@ -758,6 +758,9 @@ ERROR_T BTreeIndex::SanityCheckInternal(SIZE_T nodenum,
     rc = next.Unserialize(buffercache, ptr);
     if (rc) { return rc; }
 
+    // check parent node
+    assert(nodenum == next.info.parentnode);
+
     if (next.info.nodetype!=BTREE_LEAF_NODE)
     {
       rc = SanityCheckInternal(ptr, prev);
