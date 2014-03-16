@@ -737,21 +737,20 @@ ERROR_T BTreeIndex::SanityCheckInternal(SIZE_T nodenum,
   rc = b.Unserialize(buffercache, nodenum);
   if (rc) { return rc; }
   
-  // // check for cycles
-  // if (b.info.check)
-  // {
-  //   // then this node has already been checked, indicating a cycle
-  //   return ERROR_INSANE;
-  // }
-  // else 
-  // {
-  //   b.info.check = true;
-  // }
+  // check for cycles
+  if (b.info.check)
+  {
+    // then this node has already been checked, indicating a cycle
+    return ERROR_INSANE;
+  }
+  else 
+  {
+    b.info.check = true;
+  }
 
   // traverse the tree
   for (unsigned int i=0; i<=b.info.numkeys; i++)
   {
-    cout << "b.info.numkeys:" << b.info.numkeys << endl;
     // check the node type of the pointer
     SIZE_T ptr;
     rc = b.GetPtr(i,ptr);
@@ -762,13 +761,11 @@ ERROR_T BTreeIndex::SanityCheckInternal(SIZE_T nodenum,
     if (next.info.nodetype!=BTREE_LEAF_NODE)
     {
       rc = SanityCheckInternal(ptr, prev);
-      // cout << "next numkeys" << next.info.numkeys << endl;
       if (rc) { return rc; }
     }
     // the node is a leaf
     else
     {
-      cout << "next num keys, keys in leaf" << next.info.numkeys << endl;
       for (unsigned int j=0; j<next.info.numkeys; j++)
       {
         // get key at leaf
@@ -787,8 +784,6 @@ ERROR_T BTreeIndex::SanityCheckInternal(SIZE_T nodenum,
         concatC >> curr;
 
         // check that if current val is smaller than previous
-        cout << "curr: " << curr << endl;
-        cout << "prev: " << prev << endl;
         if (curr < prev)
         {
           // violation of BTree property
