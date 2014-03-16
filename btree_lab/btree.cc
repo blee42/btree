@@ -393,8 +393,8 @@ ERROR_T BTreeIndex::Insert_FullParent(const SIZE_T &newnode,
 	if (rc) {  return rc; }
  	BTreeNode parent;
  	parent.Unserialize(buffercache,b.info.parentnode);
- 	//if (parent.info.numkeys < (2*b.info.GetNumSlotsAsLeaf()/3)) {
- 	if (parent.info.numkeys < 4) {
+ 	if (parent.info.numkeys < (2*b.info.GetNumSlotsAsInterior()/3)) {
+ 	//if (parent.info.numkeys < 4) {
  		return Insert_NotFullParent(temp_ptr,temp_key,parent,b.info.parentnode);
  	} else {
  		return Insert_FullParent(temp_ptr,temp_key,parent,b.info.parentnode);
@@ -438,8 +438,8 @@ ERROR_T BTreeIndex::Insert_Full(const SIZE_T offset,
 
  	BTreeNode parent;
  	parent.Unserialize(buffercache,b.info.parentnode);
- 	//if (parent.info.numkeys < (2*b.info.GetNumSlotsAsLeaf()/3)) {
- 	if (parent.info.numkeys < 4) {
+ 	if (parent.info.numkeys < (2*b.info.GetNumSlotsAsInterior()/3)) {
+ 	//if (parent.info.numkeys < 4) {
  		return Insert_NotFullParent(temp_ptr,temp_key,parent,b.info.parentnode);
  	} else {
  		return Insert_FullParent(temp_ptr,temp_key,parent,b.info.parentnode);
@@ -554,8 +554,8 @@ ERROR_T BTreeIndex::InsertInternal(SIZE_T &nodenum,
 				rc=b.GetKey(offset,testkey);
 				if (rc) {  return rc; }
 				if (key<testkey) { // if there exists a key that is greater than the new key
-					//if (b.info.numkeys < (2*b.info.GetNumSlotsAsLeaf()/3)) { //if not 2/3rds full
-					if (b.info.numkeys < 4) { //if not 2/3rds full
+					if (b.info.numkeys < (2*b.info.GetNumSlotsAsLeaf()/3)) { //if not 2/3rds full
+					//if (b.info.numkeys < 4) { //if not test full
 						return Insert_NotFull(offset,key,value,nodenum,b); //function to insert into a leaf that is not full
 					} else {
 						return Insert_Full(offset,key,value,nodenum,b); //function to insert into a full leaf, with splitting
@@ -566,8 +566,8 @@ ERROR_T BTreeIndex::InsertInternal(SIZE_T &nodenum,
 			}
 			//if we get here, then none of the existing keys in the leaf need to be shifted
 			//check if it is full, and insert at the end
-			//if (b.info.numkeys < (2*b.info.GetNumSlotsAsLeaf()/3)) { //if not 2/3rds full
-			if (b.info.numkeys < 4) { //if not 2/3rds full
+			if (b.info.numkeys < (2*b.info.GetNumSlotsAsLeaf()/3)) { //if not 2/3rds full
+			//if (b.info.numkeys < 4) { //if not test full
 			// offset=b.info.numkeys since we are at the end of the existing keys
 				return Insert_NotFull(b.info.numkeys,key,value,nodenum,b); //function to insert into leaf that is not full
 			} else {
