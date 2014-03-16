@@ -67,20 +67,30 @@ class BTreeIndex {
   ERROR_T Insert_Full(const SIZE_T offset,
              const KEY_T &key,
              const VALUE_T &value,
-             const SIZE_T &node,
+             SIZE_T &node,
              BTreeNode &b);
+			 
+  ERROR_T Insert_NotFullParent(const SIZE_T newnode,
+					   const KEY_T &key,
+					   BTreeNode &b,
+					   const SIZE_T nodenum);
+					   
+  ERROR_T Insert_FullParent(const SIZE_T &newnode,
+					   const KEY_T &key,
+					   BTreeNode &b,
+					   SIZE_T &nodenum);
 
-  ERROR_T   InsertInternal(const SIZE_T &node,
+  ERROR_T InsertInternal(SIZE_T &node,
              const BTreeOp op,
              const KEY_T &key,
              const VALUE_T &value);
 
-  ERROR_T   Split(const SIZE_T &nodenum,
+  ERROR_T Split(SIZE_T &nodenum,
             BTreeNode &b,
-            SIZE_T newNode,
+            SIZE_T &newNode,
             KEY_T &mid);
   
-  ERROR_T   DisplayInternal(const SIZE_T &node,
+  ERROR_T DisplayInternal(const SIZE_T &node,
 		        ostream &o, 
 		        const BTreeDisplayType display_type=BTREE_DEPTH) const;
 
