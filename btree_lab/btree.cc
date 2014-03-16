@@ -87,6 +87,7 @@ ERROR_T BTreeIndex::AllocateNode(SIZE_T &n)
   buffercache->NotifyAllocateBlock(n);
 
   return ERROR_NOERROR;
+}
 
 
 
@@ -739,11 +740,7 @@ ERROR_T BTreeIndex::Split(SIZE_T &nodenum,
         if (rc) { return rc; }
         rc = b.GetVal(i, cVal);
         if (rc) { return rc; }
-<<<<<<< HEAD
-        rc = n.SetVal(i-middle-1, cVal);
-=======
         rc = n.SetVal(i-middle, cVal);
->>>>>>> 681c3dbd90b857b84e0a2653adfaef3fa2cf9243
         if (rc) { return rc; }
       }
       // set new number of keys in child
