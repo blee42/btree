@@ -175,6 +175,7 @@ char * BTreeNode::ResolvePtr(const SIZE_T offset) const
     return data;
     break;
   default:
+	assert(0==1);
     return 0;
   }
 }
